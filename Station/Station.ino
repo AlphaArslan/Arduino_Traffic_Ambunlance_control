@@ -15,8 +15,9 @@
 /********************************* control Panel *********************************/
 #define       street_width          10              //in CM 
 #define       sidewalk_width        3               //in CM
-#define       open_time             20000           //in ms
-#define       min_time              1000
+#define       delay_time            1000            //in ms
+#define       rounds                19              //time =  delay_time * rounds
+#define       rounds_min            0
 #define       blink_time            250
 
 /*********************************** Pin Config **********************************/
@@ -112,8 +113,28 @@ void setup(){
     pinMode(EchoBase + 2,  INPUT);
     pinMode(EchoBase + 4,  INPUT);
     pinMode(EchoBase + 6,  INPUT);
+    pinMode(LedBase  + 0,  OUTPUT);
+    pinMode(LedBase  + 1,  OUTPUT);
+    pinMode(LedBase  + 2,  OUTPUT);
+    pinMode(LedBase  + 3,  OUTPUT);
     #endif
 }
+
+/************************************* loop **************************************/
+void open_side1();
+void open_side2();
+void open_side3();
+void open_side4();
+void reset_lights();
+bool is_side_busy(char side);
+bool is_all_empty();
+void check_Ambulance();
+
+#ifdef ENABLE_US
+float USgetDistance(char side);
+#endif
+
+/*********************************************************************************/
 
 /************************************* loop **************************************/
 void loop(){
@@ -136,7 +157,6 @@ void open_side1(){
 
       
     delay_function(1);
-    check_Ambulance();
 }
 
 void open_side2(){
@@ -148,7 +168,6 @@ void open_side2(){
 
       
     delay_function(2);
-    check_Ambulance();
 }
 
 void open_side3(){
@@ -160,7 +179,6 @@ void open_side3(){
 
       
     delay_function(3);
-    check_Ambulance();
 }
 
 void open_side4(){
@@ -172,13 +190,26 @@ void open_side4(){
 
     
     delay_function(4);
-    check_Ambulance();
 }
 
 void delay_function(char side){
-    delay(min_time);
-    if(is_side_busy(side) || is_all_empty()){
-        delay(open_time-min_time);
+    delay(rounds_min * delay_time);
+    if(is_side_busy(side)){
+        for(int i=0; i<rounds; i++){
+            delay(delay_time);
+            check_Ambulance();
+            if(!is_side_busy(side)){
+                break;
+            }
+        }
+    }else if(is_all_empty()){
+        for(int i=0; i<rounds; i++){
+            delay(delay_time);
+            check_Ambulance();
+            if(!is_all_empty()){
+                break;
+            }
+        }
     }
 }
 
@@ -245,11 +276,11 @@ void check_Ambulance(){
     uint8_t buf[1] ;
     uint8_t buflen = sizeof(buf);
     if(driver.recv(buf, &buflen)){
-      switch((char)buf[0]){
-          case '1':     open_side1();     break;
-          case '2':     open_side2();     break;
-          case '3':     open_side3();     break;
-          case '4':     open_side4();     break;
+      switch(buf[0]){
+          case 1:     open_side1();     break;
+          case 2:     open_side2();     break;
+          case 3:     open_side3();     break;
+          case 4:     open_side4();     break;
       }
     }
     #endif
